@@ -18,3 +18,15 @@ db.employees.find(
 db.employees.find(
     {department:{$lte:"HR"}} //less than equal to
 )
+
+
+db.employees.find(
+    {department:"HR",salary:{$gte:30000}} 
+)
+db.employees.find(
+    {$and:[{department:"HR"},{salary:{$gte:30000}}]}  //Both conditions must be true
+)
+
+db.employees.find(
+    {$:[{department:"HR"},{salary:{$gte:30000}}]}  //Both conditions must be true
+)
