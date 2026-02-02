@@ -1,3 +1,5 @@
+//!         ____DBs____             
+
 db.employees.find({department:"HR"}).count() //we will ge no of employee in HR department
 
 db.employees.find(
@@ -30,3 +32,4 @@ db.employees.find(
 db.employees.find(
     {$:[{department:"HR"},{salary:{$gte:30000}}]}  //Both conditions must be true
 )
+
