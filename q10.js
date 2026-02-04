@@ -64,7 +64,44 @@ db.users.find({},
 
 
 db.users.aggregate([
-    {$project:
-        
-    }
+    {$project:{
+        _id:0,
+        name:1,
+        Skills:1
+    }},
+    {$unwind:"$Skills"}
+])
+
+//$unwind is used to break an array field into multiple documents—one document per array element.
+
+
+
+db.employees.aggregate([
+    {$project:{
+        _id:0,
+        name:1,
+        salary:1
+    }}
+])
+db.employees.aggregate([
+    {$project:{
+        _id:0,
+        name:1,
+        salary:1,
+        grade:{
+            $cond:[{$gt:["$salary",60000]},"Grade A","Grade B"]   //$cond: [ condition, value_if_true, value_if_false ]
+
+        }
+    }}
+])
+db.employees.aggregate([
+    {$project:{
+        _id:0,
+        name:1,
+        salary:1,
+        grade:{
+            $cond:{if:{$gt:["$salary",60000]},then:"Grade A",else:"Grade B"}
+
+        }
+    }}
 ])
