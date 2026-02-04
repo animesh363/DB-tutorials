@@ -94,6 +94,8 @@ db.employees.aggregate([
         }
     }}
 ])
+
+//IF-else
 db.employees.aggregate([
     {$project:{
         _id:0,
@@ -101,6 +103,18 @@ db.employees.aggregate([
         salary:1,
         grade:{
             $cond:{if:{$gt:["$salary",60000]},then:"Grade A",else:"Grade B"}
+
+        }
+    }}
+])
+
+//Switch case
+db.employees.aggregate([
+    {$project:{
+        _id:0,
+        name:1,
+        salary:1,
+        grade:{
 
         }
     }}
