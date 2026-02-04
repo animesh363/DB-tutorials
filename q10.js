@@ -115,7 +115,11 @@ db.employees.aggregate([
         name:1,
         salary:1,
         grade:{
-
+            $switch:{
+                branches:[{case:{$gt:["salary",100000]},then:"Grade A"},
+                {case:{$gt:["$salary",60000]},then:"Grade B"}],
+                default:"Grade C",
+            }
         }
     }}
 ])
