@@ -1,0 +1,323 @@
+========================================================
+MONGODB SHARDING + REPLICA SET
+STEP-BY-STEP DOCUMENTATION (BEGINNER FRIENDLY)
+========================================================
+
+PROJECT GOAL
+------------
+To create a MongoDB Sharded Cluster with:
+- Config Server Replica Set
+- Two Shards (each shard is a Replica Set)
+- One mongos router
+- Sharded database and collection
+- Bulk data insertion using shard key
+
+
+========================================================
+IMPORTANT CONCEPT (READ FIRST)
+========================================================
+
+1. mongod  -> Database server (stores data)
+2. mongos  -> Query router (ENTRY POINT for sharding)
+3. Replica Set -> High availability
+4. Sharding -> Horizontal scaling
+
+GOLDEN RULE:
+------------
+ALL application queries (insert, find, loop, enable sharding)
+MUST be executed ONLY from mongos.
+
+NEVER insert data directly into shard ports.
+
+
+========================================================
+FOLDER STRUCTURE
+========================================================
+
+dbshards/
+│
+├── conf     -> config server member 1
+├── confr    -> config server member 2
+│
+├── s1       -> shard 1 primary
+├── s1r      -> shard 1 secondary
+│
+├── s2       -> shard 2 primary
+├── s2r      -> shard 2 secondary
+
+
+========================================================
+STEP 1: START CONFIG SERVERS (METADATA STORAGE)
+========================================================
+
+TAB 1:
+------
+mongod --configsvr --replSet cf --dbpath conf --port 27018
+
+TAB 2:
+------
+mongod --configsvr --replSet cf --dbpath confr --port 27019
+
+Explanation:
+------------
+Config servers store metadata:
+- shard info
+- chunk locations
+- database sharding info
+
+No user data is stored here.
+
+
+========================================================
+STEP 2: INIT CONFIG SERVER REPLICA SET
+========================================================
+
+TAB 3:
+------
+mongosh --port 27018
+
+Run:
+----
+rs.initiate({
+  _id: "cf",
+  members: [
+    { _id: 0, host: "localhost:27018" },
+    { _id: 1, host: "localhost:27019" }
+  ]
+})
+
+Check:
+------
+rs.status()
+
+Explanation:
+------------
+Config servers must run as a replica set (mandatory).
+
+
+========================================================
+STEP 3: START SHARD 1 (REPLICA SET)
+========================================================
+
+TAB 4:
+------
+mongod --shardsvr --replSet s1 --dbpath s1 --port 27020
+
+TAB 5:
+------
+mongod --shardsvr --replSet s1 --dbpath s1r --port 27021
+
+
+========================================================
+STEP 4: INIT SHARD 1 REPLICA SET
+========================================================
+
+TAB 6:
+------
+mongosh --port 27020
+
+Run:
+----
+rs.initiate({
+  _id: "s1",
+  members: [
+    { _id: 0, host: "localhost:27020" },
+    { _id: 1, host: "localhost:27021" }
+  ]
+})
+
+Check:
+------
+rs.status()
+
+Explanation:
+------------
+Shard 1 is now a replica set.
+It will store PART of the sharded data.
+
+
+========================================================
+STEP 5: START SHARD 2 (REPLICA SET)
+========================================================
+
+TAB 7:
+------
+mongod --shardsvr --replSet s2 --dbpath s2 --port 27022
+
+TAB 8:
+------
+mongod --shardsvr --replSet s2 --dbpath s2r --port 27023
+
+
+========================================================
+STEP 6: INIT SHARD 2 REPLICA SET
+========================================================
+
+TAB 9:
+------
+mongosh --port 27022
+
+Run:
+----
+rs.initiate({
+  _id: "s2",
+  members: [
+    { _id: 0, host: "localhost:27022" },
+    { _id: 1, host: "localhost:27023" }
+  ]
+})
+
+Check:
+------
+rs.status()
+
+Explanation:
+------------
+Shard 2 is another replica set.
+It will store remaining part of data.
+
+
+========================================================
+STEP 7: START MONGOS (QUERY ROUTER)
+========================================================
+
+TAB 10:
+-------
+mongos --configdb cf/localhost:27018,localhost:27019 --port 27050
+
+TAB 11:
+-------
+mongosh --port 27050
+
+Explanation:
+------------
+mongos is the ENTRY POINT.
+All client/app connections MUST go through mongos.
+
+
+========================================================
+STEP 8: ADD SHARDS TO CLUSTER
+========================================================
+
+Run on mongos (port 27050):
+
+sh.addShard("s1/localhost:27020,localhost:27021")
+sh.addShard("s2/localhost:27022,localhost:27023")
+
+Check:
+------
+sh.status()
+
+Explanation:
+------------
+This tells MongoDB that these replica sets are shards.
+
+
+========================================================
+STEP 9: ENABLE SHARDING ON DATABASE
+========================================================
+
+use icici
+sh.enableSharding("icici")
+
+Explanation:
+------------
+Only enabled databases can have sharded collections.
+
+
+========================================================
+STEP 10: SHARD A COLLECTION
+========================================================
+
+sh.shardCollection("icici.customers", { _id: 1 })
+
+Explanation:
+------------
+Shard key = _id
+MongoDB will distribute documents based on _id range.
+
+
+========================================================
+STEP 11: INSERT DATA (IMPORTANT)
+========================================================
+
+ONLY run on mongos (port 27050)
+
+Correct:
+--------
+db.customers.insertOne({
+  _id: 1,
+  name: "Customer1",
+  age: 25
+})
+
+Bulk Insert:
+------------
+for (let i = 2; i <= 1000; i++) {
+  db.customers.insertOne({
+    _id: i,
+    name: "Customer" + i,
+    age: 25 + i
+  })
+}
+
+WRONG (DO NOT DO):
+------------------
+mongosh --port 27020
+db.customers.insertOne(...)
+
+Reason:
+-------
+Shard nodes are NOT entry points.
+Only mongos routes data correctly.
+
+
+========================================================
+STEP 12: VERIFY DATA & DISTRIBUTION
+========================================================
+
+db.customers.countDocuments()
+
+sh.getShardedDataDistribution()
+
+Explanation:
+------------
+Shows how many documents are stored on each shard.
+
+
+========================================================
+COMMON ERRORS & REASONS
+========================================================
+
+Error:
+------
+NotWritablePrimary
+
+Reason:
+-------
+Trying to write on secondary or directly on shard.
+
+Fix:
+----
+Always connect to mongos.
+
+
+========================================================
+FINAL MENTAL MODEL
+========================================================
+
+Client / Application
+        |
+        v
+      mongos   <-- ALL READ & WRITE
+        |
+        v
+  -----------------
+  |    |    |    |
+ Shard1    Shard2
+ (Replica Sets)
+
+
+========================================================
+END OF DOCUMENT
+========================================================
