@@ -44,3 +44,46 @@ db.students.aggregate([
     {$sort:{age:1,name:1}},  
     {$project:{_id:0,name:1,age:1}}
 ])
+
+
+db.students.aggregate([
+    {$match:{age:{$gte:20}}},
+    {$sort:{age:1}},
+    {$project:{name:1,_id:0,
+        isValidAge:{$gt:["$age",20]}   //We have created a custum field isValidAge
+    }}
+])
+
+db.students.aggregate([
+    {$sortByCount:"$class"}
+])
+
+db.students.aggregate([
+    {$match:{age:{$gte:20}}},
+    {$sort:{age:1,name:1}},
+    {$skip:3},
+    {$limit:4},
+    {$project:{_id:0,name:1,age:1}},
+])
+
+db.students.aggregate([
+    {$sample:{size:2}},
+    {$project:{_id:0,name:1,age:1}},
+])
+
+db.students.aggregate([
+    {$group:{
+        _id:"$class",
+        class:{$sum:1}
+    }}
+])
+db.students.aggregate([
+    {$group:{
+        _id:"$class",
+        class:{$count:{}}
+    }},
+    {$sort:{count:1}}
+])
+
+
+
