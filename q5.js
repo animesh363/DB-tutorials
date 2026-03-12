@@ -1,4 +1,4 @@
-//!         ____DBs____             
+//?                 ____    DBs ____             
 
 db.employees.find({department:"HR"}).count() //we will ge no of employee in HR department
 

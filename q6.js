@@ -6,7 +6,7 @@ db.employees.updateOne(
 )
 db.employees.updateOne(
     {email: "animesh.thakur@gmail.com"},
-    {$inc:{salary:50000}}  //$It will update dsalary by 50000
+    {$inc:{salary:50000}}  //$It will incerease dsalary by 50000
 )
 db.employees.updateMany(
     {},
