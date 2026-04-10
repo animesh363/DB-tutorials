@@ -92,11 +92,94 @@ db.books.find({}).pretty()               // formatted output in mongosh
 db.books.countDocuments({})               // how many total books?
 
 
-//Find one specific book
+//*Find one specific book
 
 db.books.findOne({title: "Clean Code"})    // returns ONE document or null
 db.books.findOne({author: "J.K. Rowling"})
 
 
-//Find with conditions
+//*Find with conditions
 
+// Technology books only
+db.books.find({ genre: "Technology" })
+// Books available right now (available > 0)
+db.books.find({ available: {$gt: 4.5} })
+// Books rated 4.7 or above
+db.books.find({ rating: {$gt: 4.7} })
+// Active members only
+db.members.find({ active: true})
+// Find active borrows (not returned yet)
+db.borrows.find({ status: "active" })
+
+
+db.books.find({})
+db.members.find({})
+
+//!Update a single field — $set
+
+// Book was returned: increase available count
+db.books.updateOne(
+  { title: "Clean Code" },
+  { $set: { available: 3 } }
+)
+
+// Update member phone number
+db.members.updateOne(
+  { email: "animesh@lib.com" },
+  { $set: { phone: "9000000001" } }
+)
+
+//Multiple operators together
+
+// When a book is borrowed:
+// - decrease available by 1    ($inc)
+// - add borrower tag            ($push)
+// - set lastBorrowedDate        ($set)
+db.books.updateOne(
+  { title: "Harry Potter" },
+  {
+    $inc:  { available: -1 },
+    $push: { recentBorrowers: "Animesh Sharma" },
+    $set:  { lastBorrowed: new Date() }
+  }
+)
+
+
+//*Update many documents at once
+
+// All Technology books: add "tech" tag if not already there
+db.books.updateMany(
+  { genre: "Technology" },
+  { $addToSet: { tags: "tech" } }   // addToSet = push only if unique
+)
+
+// Deactivate all student members who haven't joined in 2024
+db.members.updateMany(
+  { memberType: "student", joinDate: { $lt: new Date("2024-01-01") } },
+  { $set: { active: false } }
+)
+
+
+
+//*Upsert — insert if not found
+
+
+// Update fine record — insert new one if this borrow has no fine yet
+db.borrows.updateOne(
+  { bookId: book1, memberId: member1 },
+  { $set: { fine: 50, status: "overdue" } },
+  { upsert: true }   // creates doc if filter matches nothing
+)
+
+
+//*findOneAndUpdate — get the updated doc back
+
+// Returns the document AFTER update (useful in APIs)
+const updated = db.books.findOneAndUpdate(
+  { title: "Sapiens" },
+  { $inc: { available: -1 } },
+  { returnDocument: "after" }
+)
+console.log(updated.available)  // reflects new value immediately
+
+//?till updation 
