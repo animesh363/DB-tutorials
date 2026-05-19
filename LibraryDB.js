@@ -7,7 +7,7 @@ db.createCollection("books")
 db.createCollection("members")
 db.createCollection("borrows")
 
-show collections
+//show collections  -> for showing all the collections
 
 //or
 db.getCollectionNames();
